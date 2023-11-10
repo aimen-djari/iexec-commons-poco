@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.testcontainers.containers.DockerComposeContainer;
+import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.web3j.crypto.CipherException;
@@ -49,7 +49,8 @@ class ChainTests {
     private Web3jTestService web3jService;
 
     @Container
-    static DockerComposeContainer<?> environment = new DockerComposeContainer<>(new File("docker-compose.yml"))
+    static ComposeContainer environment = new ComposeContainer(new File("docker-compose.yml"))
+            .withPull(true)
             .withExposedService("poco-chain", 8545);
 
 

@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.DockerComposeContainer;
+import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.web3j.crypto.CipherException;
@@ -58,7 +58,8 @@ class MatchOrdersTests {
     private OrderSigner signer;
 
     @Container
-    static DockerComposeContainer<?> environment = new DockerComposeContainer<>(new File("docker-compose.yml"))
+    static ComposeContainer environment = new ComposeContainer(new File("docker-compose.yml"))
+            .withPull(true)
             .withExposedService("poco-chain", 8545);
 
     @BeforeEach
