@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'jacoco'
     id 'org.sonarqube' version '4.2.1.3168'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
     id 'maven-publish'
     id 'io.freefair.lombok' version '8.2.2'
 }
@@ -17,7 +18,7 @@ if (!project.hasProperty('gitBranch')) {
 }
 
 if (gitBranch != 'main' && gitBranch != 'master' && !(gitBranch ==~ '(release|hotfix|support)/.*')) {
-    version += '-NEXT-SNAPSHOT'
+    //version += '-NEXT-SNAPSHOT'
 }
 
 repositories {
@@ -79,6 +80,17 @@ java {
     withJavadocJar()
     withSourcesJar()
 }
+
+// required if we want to embed web3j dependency inside
+shadowJar {
+    // classifier to produce 2 identified jar files
+    archiveClassifier.set('all')
+    // include source code in the jar
+    from sourceSets.main.allSource
+    // avoid duplicate application.properties import from jar and sources
+    duplicatesStrategy = 'exclude'
+}
+build.dependsOn(shadowJar)
 
 tasks.withType(Test).configureEach {
     finalizedBy jacocoTestReport

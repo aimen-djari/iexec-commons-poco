@@ -12,10 +12,10 @@ set -Eeuo pipefail
 
 
 #Put here the PoCo-dev directory that contains smart contracts (JSON files)
-POCO_DEV_CONTRACTS_DIRECTORY=${HOME}/iexecdev/PoCo-dev/build/contracts/
+POCO_DEV_CONTRACTS_DIRECTORY=${HOME}/datapool/PoCo-dev/build/contracts/
 
 #Put here the src/main/java/ directory of commons-poco project 
-COMMONS_POCO_WRAPPER_DIRECTORY=${HOME}/iexecdev/iexec-commons-poco/src/main/java/
+COMMONS_POCO_WRAPPER_DIRECTORY=${HOME}/datapool/iexec-commons-poco/src/main/java/
 
 #Put here the java package for commons-poco Wrappers
 COMMONS_POCO_PACKAGE='com.iexec.commons.poco.contract.generated'

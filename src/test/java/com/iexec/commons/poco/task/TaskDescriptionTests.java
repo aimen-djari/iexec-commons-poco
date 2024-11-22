@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -79,10 +80,11 @@ class TaskDescriptionTests {
                 .botSize(BOT_SIZE)
                 .botFirstIndex(BOT_FIRST)
                 .botIndex(TASK_IDX)
-                .datasetAddress(DATASET_ADDRESS)
-                .datasetUri(DATASET_URI)
-                .datasetName(DATASET_NAME)
-                .datasetChecksum(DATASET_CHECKSUM)
+                .datapool(false)
+                .datasetAddresses(List.of(DATASET_ADDRESS))
+                .datasetUris(List.of(DATASET_URI))
+                .datasetNames(List.of(DATASET_NAME))
+                .datasetChecksums(List.of(DATASET_CHECKSUM))
                 .inputFiles(INPUT_FILES)
                 .isResultEncryption(IS_RESULT_ENCRYPTION)
                 .resultStorageProvider(RESULT_STORAGE_PROVIDER)
@@ -119,12 +121,12 @@ class TaskDescriptionTests {
                 task.getBotSize());
         Assertions.assertEquals(BOT_FIRST,
                 task.getBotFirstIndex());
-        Assertions.assertEquals(DATASET_URI,
-                task.getDatasetUri());
-        Assertions.assertEquals(DATASET_NAME,
-                task.getDatasetName());
-        Assertions.assertEquals(DATASET_CHECKSUM,
-                task.getDatasetChecksum());
+        Assertions.assertEquals(List.of(DATASET_URI),
+                task.getDatasetUris());
+        Assertions.assertEquals(List.of(DATASET_NAME),
+                task.getDatasetNames());
+        Assertions.assertEquals(List.of(DATASET_CHECKSUM),
+                task.getDatasetChecksums());
         Assertions.assertEquals(INPUT_FILES,
                 task.getInputFiles());
         Assertions.assertEquals(IS_CALLBACK_REQUESTED,
@@ -214,12 +216,12 @@ class TaskDescriptionTests {
                 task.getBotSize());
         Assertions.assertEquals(BOT_FIRST,
                 task.getBotFirstIndex());
-        Assertions.assertEquals(DATASET_URI,
-                task.getDatasetUri());
-        Assertions.assertEquals(DATASET_NAME,
-                task.getDatasetName());
-        Assertions.assertEquals(DATASET_CHECKSUM,
-                task.getDatasetChecksum());
+        Assertions.assertEquals(List.of(DATASET_URI),
+                task.getDatasetUris());
+        Assertions.assertEquals(List.of(DATASET_NAME),
+                task.getDatasetNames());
+        Assertions.assertEquals(List.of(DATASET_CHECKSUM),
+                task.getDatasetChecksums());
         Assertions.assertEquals(INPUT_FILES,
                 task.getInputFiles());
         Assertions.assertEquals(IS_CALLBACK_REQUESTED,
@@ -237,18 +239,20 @@ class TaskDescriptionTests {
     @Test
     void shouldContainDataset() {
         Assertions.assertTrue(TaskDescription.builder()
-                .datasetAddress(DATASET_ADDRESS)
-                .datasetUri(DATASET_URI)
-                .datasetName(DATASET_NAME)
-                .datasetChecksum(DATASET_CHECKSUM)
+                .datapool(false)
+                .datasetAddresses(List.of(DATASET_ADDRESS))
+                .datasetUris(List.of(DATASET_URI))
+                .datasetNames(List.of(DATASET_NAME))
+                .datasetChecksums(List.of(DATASET_CHECKSUM))
                 .build()
                 .containsDataset());
 
         Assertions.assertTrue(TaskDescription.builder()
-                .datasetAddress(DATASET_ADDRESS)
-                .datasetUri(DATASET_URI)
-                // .datasetName(DATASET_NAME)
-                .datasetChecksum(DATASET_CHECKSUM)
+                .datapool(false)
+                .datasetAddresses(List.of(DATASET_ADDRESS))
+                .datasetUris(List.of(DATASET_URI))
+                //.datasetNames(List.of(DATASET_NAME))
+                .datasetChecksums(List.of(DATASET_CHECKSUM))
                 .build()
                 .containsDataset());
     }
@@ -256,26 +260,29 @@ class TaskDescriptionTests {
     @Test
     void shouldNotContainDataset() {
         Assertions.assertFalse(TaskDescription.builder()
-                // .datasetAddress(DATASET_ADDRESS)
-                .datasetUri(DATASET_URI)
-                .datasetName(DATASET_NAME)
-                .datasetChecksum(DATASET_CHECKSUM)
+                .datapool(false)
+                .datasetAddresses(List.of(""))
+                .datasetUris(List.of(DATASET_URI))
+                .datasetNames(List.of(DATASET_NAME))
+                .datasetChecksums(List.of(DATASET_CHECKSUM))
                 .build()
                 .containsDataset());
 
         Assertions.assertFalse(TaskDescription.builder()
-                .datasetAddress(DATASET_ADDRESS)
-                // .datasetUri(DATASET_URI)
-                .datasetName(DATASET_NAME)
-                .datasetChecksum(DATASET_CHECKSUM)
+                .datapool(false)
+                .datasetAddresses(List.of(DATASET_ADDRESS))
+                .datasetUris(List.of(""))
+                .datasetNames(List.of(DATASET_NAME))
+                .datasetChecksums(List.of(DATASET_CHECKSUM))
                 .build()
                 .containsDataset());
 
         Assertions.assertFalse(TaskDescription.builder()
-                .datasetAddress(DATASET_ADDRESS)
-                .datasetUri(DATASET_URI)
-                .datasetName(DATASET_NAME)
-                // .datasetChecksum(DATASET_CHECKSUM)
+                .datapool(false)
+                .datasetAddresses(List.of(DATASET_ADDRESS))
+                .datasetUris(List.of(DATASET_URI))
+                .datasetNames(List.of(DATASET_NAME))
+                .datasetChecksums(List.of(""))
                 .build()
                 .containsDataset());
     }

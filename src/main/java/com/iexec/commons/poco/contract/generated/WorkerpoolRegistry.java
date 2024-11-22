@@ -140,13 +140,13 @@ public class WorkerpoolRegistry extends Contract {
 
     static {
         _addresses = new HashMap<String, String>();
-        _addresses.put("1", "0xC76A18c78B7e530A165c5683CB1aB134E21938B4");
-        _addresses.put("133", "0xC76A18c78B7e530A165c5683CB1aB134E21938B4");
-        _addresses.put("134", "0xC76A18c78B7e530A165c5683CB1aB134E21938B4");
-        _addresses.put("3", "0xC76A18c78B7e530A165c5683CB1aB134E21938B4");
-        _addresses.put("4", "0xC76A18c78B7e530A165c5683CB1aB134E21938B4");
-        _addresses.put("5", "0xC76A18c78B7e530A165c5683CB1aB134E21938B4");
-        _addresses.put("42", "0xC76A18c78B7e530A165c5683CB1aB134E21938B4");
+        _addresses.put("1731816305374", "0x50c50E48F7625577ba14715A8cCB35446262cdc7");
+        _addresses.put("1731815538834", "0x767b00e71C2Ac6750746F9e5B9C88DC92d1B6016");
+        _addresses.put("1731619694686", "0xB17CAaBFaC79f2e764ed1E5174a364206DAbD300");
+        _addresses.put("1731560222209", "0xB0b18dd8dF8259491718cB3A2d270eFd627E692a");
+        _addresses.put("1731807404895", "0x7218469273377DC737871768894aFdA9739C513c");
+        _addresses.put("1731619430569", "0xe7685e16d6C5E5B2743293dE6E566B1ad05CD59f");
+        _addresses.put("1731534065391", "0xC2f9E0256c5a8107aD5De14587dBaA3164296E11");
     }
 
     @Deprecated

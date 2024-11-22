@@ -140,13 +140,13 @@ public class AppRegistry extends Contract {
 
     static {
         _addresses = new HashMap<String, String>();
-        _addresses.put("1", "0xB1C52075b276f87b1834919167312221d50c9D16");
-        _addresses.put("133", "0xB1C52075b276f87b1834919167312221d50c9D16");
-        _addresses.put("134", "0xB1C52075b276f87b1834919167312221d50c9D16");
-        _addresses.put("3", "0xB1C52075b276f87b1834919167312221d50c9D16");
-        _addresses.put("4", "0xB1C52075b276f87b1834919167312221d50c9D16");
-        _addresses.put("5", "0xB1C52075b276f87b1834919167312221d50c9D16");
-        _addresses.put("42", "0xB1C52075b276f87b1834919167312221d50c9D16");
+        _addresses.put("1731816305374", "0x99b93C72026feEc3C5Ee6f853Ed15D0071985836");
+        _addresses.put("1731815538834", "0x58742bd5cB918220Ce25341999171494B3691575");
+        _addresses.put("1731619694686", "0xA4FBDe40eCa2b16E82a83C821A94e708d817750F");
+        _addresses.put("1731560222209", "0xf18ef812fB838452970262684132702485634a92");
+        _addresses.put("1731807404895", "0xc85f23AB2AbF7Ad218B9f29042b9A5B19f928336");
+        _addresses.put("1731619430569", "0x6b111063098b8E5db34F57AF022243aC4D7E67da");
+        _addresses.put("1731534065391", "0xDf478F39b801DE240381e73592Aa099e0176bfC2");
     }
 
     @Deprecated
