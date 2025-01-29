@@ -36,6 +36,7 @@ public class DatasetOrder extends Order {
     String apprestrict;
     String workerpoolrestrict;
     String requesterrestrict;
+    BigInteger deadline;
 
     @Builder
     DatasetOrder(
@@ -46,6 +47,7 @@ public class DatasetOrder extends Order {
             String apprestrict,
             String workerpoolrestrict,
             String requesterrestrict,
+            BigInteger deadline,
             String salt,
             String sign) {
         super(volume, tag, salt, sign);
@@ -54,6 +56,7 @@ public class DatasetOrder extends Order {
         this.apprestrict = toLowerCase(apprestrict);
         this.workerpoolrestrict = toLowerCase(workerpoolrestrict);
         this.requesterrestrict = toLowerCase(requesterrestrict);
+        this.deadline = deadline;
     }
 
     @JsonPOJOBuilder(withPrefix = "")
@@ -64,7 +67,7 @@ public class DatasetOrder extends Order {
         return new DatasetOrder(
                 this.dataset, this.datasetprice,
                 this.volume, this.tag,
-                this.apprestrict, this.workerpoolrestrict, this.requesterrestrict,
+                this.apprestrict, this.workerpoolrestrict, this.requesterrestrict, this.deadline,
                 this.salt, signature
         );
     }
@@ -78,6 +81,7 @@ public class DatasetOrder extends Order {
                 this.apprestrict,
                 this.workerpoolrestrict,
                 this.requesterrestrict,
+                this.deadline,
                 Numeric.hexStringToByteArray(this.salt),
                 Numeric.hexStringToByteArray(this.sign)
         );
@@ -89,6 +93,7 @@ public class DatasetOrder extends Order {
                 + ", apprestrict=" + apprestrict
                 + ", workerpoolrestrict=" + workerpoolrestrict
                 + ", requesterrestrict=" + requesterrestrict
+                + ", deadline=" + deadline
                 + ", salt=" + salt + ", sign=" + sign + "}";
     }
 }

@@ -18,8 +18,8 @@ package com.iexec.commons.poco.chain;
 
 import lombok.Builder;
 import lombok.Value;
+
 import com.iexec.commons.poco.contract.generated.AbstractDatapool;
-import java.util.List;
 
 @Value
 @Builder
@@ -27,8 +27,7 @@ public class ChainDataset {
     String chainDatasetId;
     String owner;
     String name;
-    AbstractDatapool datapoolContract;
-    List<ChainDataset> datasets;
+    AbstractDatapool datapool;
     String uri;
     String checksum;
 }

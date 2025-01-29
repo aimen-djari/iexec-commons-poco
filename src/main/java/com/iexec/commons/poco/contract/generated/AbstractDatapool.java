@@ -20,7 +20,6 @@ import org.web3j.abi.datatypes.DynamicStruct;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.abi.datatypes.StaticStruct;
 import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.Utf8String;
 import org.web3j.abi.datatypes.generated.Bytes32;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
@@ -32,9 +31,9 @@ import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.BaseEventResponse;
 import org.web3j.protocol.core.methods.response.Log;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tuples.generated.Tuple12;
 import org.web3j.tuples.generated.Tuple2;
-import org.web3j.tuples.generated.Tuple5;
-import org.web3j.tuples.generated.Tuple9;
+import org.web3j.tuples.generated.Tuple4;
 import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
@@ -52,8 +51,6 @@ import org.web3j.tx.gas.ContractGasProvider;
 public class AbstractDatapool extends Contract {
     public static final String BINARY = "0x";
 
-    public static final String FUNC_ALLDATASETS = "allDatasets";
-
     public static final String FUNC_ALLOWEDAPPS = "allowedApps";
 
     public static final String FUNC_ALLOWEDWORKERPOOLS = "allowedWorkerpools";
@@ -64,9 +61,11 @@ public class AbstractDatapool extends Contract {
 
     public static final String FUNC_TASKHISTORY = "taskHistory";
 
-    public static final String FUNC_TASKIDS = "taskIds";
+    public static final String FUNC_VERSIONREWARDCLAIMED = "versionRewardClaimed";
 
-    public static final String FUNC_TASKREWARDCLAIMED = "taskRewardClaimed";
+    public static final String FUNC_VERSIONID = "versionid";
+
+    public static final String FUNC_VERSIONS = "versions";
 
     public static final String FUNC_INITIALIZE = "initialize";
 
@@ -76,10 +75,6 @@ public class AbstractDatapool extends Contract {
 
     public static final String FUNC_SETDATASETPRICE = "setDatasetPrice";
 
-    public static final String FUNC_ADDALLOWEDAPP = "addAllowedApp";
-
-    public static final String FUNC_ADDALLOWEDWORKERPOOL = "addAllowedWorkerpool";
-
     public static final String FUNC_ADDDATASET = "addDataset";
 
     public static final String FUNC_REMOVEDATASET = "removeDataset";
@@ -88,17 +83,15 @@ public class AbstractDatapool extends Contract {
 
     public static final String FUNC_ISINACTIVEDATASET = "isInactiveDataset";
 
-    public static final String FUNC_GETACTIVEDATASETSFORTASK = "getActiveDatasetsForTask";
+    public static final String FUNC_CREATESIGNEDDATAPOOLORDER = "createSignedDatapoolOrder";
 
-    public static final String FUNC_CREATETASK = "createTask";
+    public static final String FUNC_REGISTERTASKS = "registerTasks";
 
     public static final String FUNC_FINALIZETASK = "finalizeTask";
 
-    public static final String FUNC_ISDATASETPRESENTATTASKCREATION = "isDatasetPresentAtTaskCreation";
+    public static final String FUNC_ISDATASETINCLUDEDINTASK = "isDatasetIncludedInTask";
 
-    public static final String FUNC_WITHDRAWTASKREWARD = "withdrawTaskReward";
-
-    public static final String FUNC_WITHDRAWALLTASKSREWARDS = "withdrawAllTasksRewards";
+    public static final String FUNC_WITHDRAWVERSIONREWARD = "withdrawVersionReward";
 
     public static final String FUNC_TASKEXISTS = "taskExists";
 
@@ -116,12 +109,16 @@ public class AbstractDatapool extends Contract {
             Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}));
     ;
 
+    public static final Event DATAPOOLORDERCREATED_EVENT = new Event("DatapoolOrderCreated", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<DatasetOrder>() {}));
+    ;
+
     public static final Event DATAPOOLTASKCREATED_EVENT = new Event("DatapoolTaskCreated", 
             Arrays.<TypeReference<?>>asList(new TypeReference<Bytes32>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Uint256>() {}));
     ;
 
     public static final Event DATAPOOLTASKFINALIZED_EVENT = new Event("DatapoolTaskFinalized", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Bytes32>(true) {}, new TypeReference<Uint256>() {}));
+            Arrays.<TypeReference<?>>asList(new TypeReference<Bytes32>(true) {}));
     ;
 
     public static final Event DATASETADDED_EVENT = new Event("DatasetAdded", 
@@ -130,6 +127,10 @@ public class AbstractDatapool extends Contract {
 
     public static final Event DATASETREMOVED_EVENT = new Event("DatasetRemoved", 
             Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}));
+    ;
+
+    public static final Event PRICINGPOLICYUPDATED_EVENT = new Event("PricingPolicyUpdated", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
     ;
 
     protected static final HashMap<String, String> _addresses;
@@ -249,6 +250,39 @@ public class AbstractDatapool extends Contract {
         return datapoolInitializedEventFlowable(filter);
     }
 
+    public static List<DatapoolOrderCreatedEventResponse> getDatapoolOrderCreatedEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(DATAPOOLORDERCREATED_EVENT, transactionReceipt);
+        ArrayList<DatapoolOrderCreatedEventResponse> responses = new ArrayList<DatapoolOrderCreatedEventResponse>(valueList.size());
+        for (Contract.EventValuesWithLog eventValues : valueList) {
+            DatapoolOrderCreatedEventResponse typedResponse = new DatapoolOrderCreatedEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.datapoolAddressInRegistry = (String) eventValues.getIndexedValues().get(0).getValue();
+            typedResponse.datapoolorder = (DatasetOrder) eventValues.getNonIndexedValues().get(0);
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Flowable<DatapoolOrderCreatedEventResponse> datapoolOrderCreatedEventFlowable(EthFilter filter) {
+        return web3j.ethLogFlowable(filter).map(new Function<Log, DatapoolOrderCreatedEventResponse>() {
+            @Override
+            public DatapoolOrderCreatedEventResponse apply(Log log) {
+                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(DATAPOOLORDERCREATED_EVENT, log);
+                DatapoolOrderCreatedEventResponse typedResponse = new DatapoolOrderCreatedEventResponse();
+                typedResponse.log = log;
+                typedResponse.datapoolAddressInRegistry = (String) eventValues.getIndexedValues().get(0).getValue();
+                typedResponse.datapoolorder = (DatasetOrder) eventValues.getNonIndexedValues().get(0);
+                return typedResponse;
+            }
+        });
+    }
+
+    public Flowable<DatapoolOrderCreatedEventResponse> datapoolOrderCreatedEventFlowable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(EventEncoder.encode(DATAPOOLORDERCREATED_EVENT));
+        return datapoolOrderCreatedEventFlowable(filter);
+    }
+
     public static List<DatapoolTaskCreatedEventResponse> getDatapoolTaskCreatedEvents(TransactionReceipt transactionReceipt) {
         List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(DATAPOOLTASKCREATED_EVENT, transactionReceipt);
         ArrayList<DatapoolTaskCreatedEventResponse> responses = new ArrayList<DatapoolTaskCreatedEventResponse>(valueList.size());
@@ -257,7 +291,7 @@ public class AbstractDatapool extends Contract {
             typedResponse.log = eventValues.getLog();
             typedResponse.taskid = (byte[]) eventValues.getIndexedValues().get(0).getValue();
             typedResponse.datapoolAddressInRegistry = (String) eventValues.getIndexedValues().get(1).getValue();
-            typedResponse.activeDatasetCount = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+            typedResponse.datasetCount = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
             responses.add(typedResponse);
         }
         return responses;
@@ -272,7 +306,7 @@ public class AbstractDatapool extends Contract {
                 typedResponse.log = log;
                 typedResponse.taskid = (byte[]) eventValues.getIndexedValues().get(0).getValue();
                 typedResponse.datapoolAddressInRegistry = (String) eventValues.getIndexedValues().get(1).getValue();
-                typedResponse.activeDatasetCount = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+                typedResponse.datasetCount = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
                 return typedResponse;
             }
         });
@@ -291,7 +325,6 @@ public class AbstractDatapool extends Contract {
             DatapoolTaskFinalizedEventResponse typedResponse = new DatapoolTaskFinalizedEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.taskid = (byte[]) eventValues.getIndexedValues().get(0).getValue();
-            typedResponse.activeDatasetCount = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
             responses.add(typedResponse);
         }
         return responses;
@@ -305,7 +338,6 @@ public class AbstractDatapool extends Contract {
                 DatapoolTaskFinalizedEventResponse typedResponse = new DatapoolTaskFinalizedEventResponse();
                 typedResponse.log = log;
                 typedResponse.taskid = (byte[]) eventValues.getIndexedValues().get(0).getValue();
-                typedResponse.activeDatasetCount = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
                 return typedResponse;
             }
         });
@@ -379,11 +411,37 @@ public class AbstractDatapool extends Contract {
         return datasetRemovedEventFlowable(filter);
     }
 
-    public RemoteFunctionCall<String> allDatasets(BigInteger param0) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_ALLDATASETS, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
-        return executeRemoteCallSingleValueReturn(function, String.class);
+    public static List<PricingPolicyUpdatedEventResponse> getPricingPolicyUpdatedEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(PRICINGPOLICYUPDATED_EVENT, transactionReceipt);
+        ArrayList<PricingPolicyUpdatedEventResponse> responses = new ArrayList<PricingPolicyUpdatedEventResponse>(valueList.size());
+        for (Contract.EventValuesWithLog eventValues : valueList) {
+            PricingPolicyUpdatedEventResponse typedResponse = new PricingPolicyUpdatedEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.datapoolOwnerPrice = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+            typedResponse.datasetPrice = (BigInteger) eventValues.getNonIndexedValues().get(1).getValue();
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Flowable<PricingPolicyUpdatedEventResponse> pricingPolicyUpdatedEventFlowable(EthFilter filter) {
+        return web3j.ethLogFlowable(filter).map(new Function<Log, PricingPolicyUpdatedEventResponse>() {
+            @Override
+            public PricingPolicyUpdatedEventResponse apply(Log log) {
+                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(PRICINGPOLICYUPDATED_EVENT, log);
+                PricingPolicyUpdatedEventResponse typedResponse = new PricingPolicyUpdatedEventResponse();
+                typedResponse.log = log;
+                typedResponse.datapoolOwnerPrice = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+                typedResponse.datasetPrice = (BigInteger) eventValues.getNonIndexedValues().get(1).getValue();
+                return typedResponse;
+            }
+        });
+    }
+
+    public Flowable<PricingPolicyUpdatedEventResponse> pricingPolicyUpdatedEventFlowable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(EventEncoder.encode(PRICINGPOLICYUPDATED_EVENT));
+        return pricingPolicyUpdatedEventFlowable(filter);
     }
 
     public RemoteFunctionCall<Boolean> allowedApps(String param0) {
@@ -424,38 +482,55 @@ public class AbstractDatapool extends Contract {
                 });
     }
 
-    public RemoteFunctionCall<Tuple5<BigInteger, Boolean, BigInteger, BigInteger, BigInteger>> taskHistory(byte[] param0) {
+    public RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>> taskHistory(byte[] param0) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_TASKHISTORY, 
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Bytes32(param0)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
-        return new RemoteFunctionCall<Tuple5<BigInteger, Boolean, BigInteger, BigInteger, BigInteger>>(function,
-                new Callable<Tuple5<BigInteger, Boolean, BigInteger, BigInteger, BigInteger>>() {
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}));
+        return new RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>>(function,
+                new Callable<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>>() {
                     @Override
-                    public Tuple5<BigInteger, Boolean, BigInteger, BigInteger, BigInteger> call() throws Exception {
+                    public Tuple4<BigInteger, BigInteger, BigInteger, Boolean> call() throws Exception {
                         List<Type> results = executeCallMultipleValueReturn(function);
-                        return new Tuple5<BigInteger, Boolean, BigInteger, BigInteger, BigInteger>(
+                        return new Tuple4<BigInteger, BigInteger, BigInteger, Boolean>(
                                 (BigInteger) results.get(0).getValue(), 
-                                (Boolean) results.get(1).getValue(), 
+                                (BigInteger) results.get(1).getValue(), 
                                 (BigInteger) results.get(2).getValue(), 
-                                (BigInteger) results.get(3).getValue(), 
-                                (BigInteger) results.get(4).getValue());
+                                (Boolean) results.get(3).getValue());
                     }
                 });
     }
 
-    public RemoteFunctionCall<byte[]> taskIds(BigInteger param0) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_TASKIDS, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Bytes32>() {}));
-        return executeRemoteCallSingleValueReturn(function, byte[].class);
+    public RemoteFunctionCall<BigInteger> versionRewardClaimed(BigInteger param0, String param1) {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_VERSIONREWARDCLAIMED, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0), 
+                new org.web3j.abi.datatypes.Address(param1)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteFunctionCall<Boolean> taskRewardClaimed(byte[] param0, String param1) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_TASKREWARDCLAIMED, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Bytes32(param0), 
-                new org.web3j.abi.datatypes.Address(param1)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
-        return executeRemoteCallSingleValueReturn(function, Boolean.class);
+    public RemoteFunctionCall<BigInteger> versionid() {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_VERSIONID, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
+    }
+
+    public RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, PricingPolicy>> versions(BigInteger param0) {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_VERSIONS, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<PricingPolicy>() {}));
+        return new RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, PricingPolicy>>(function,
+                new Callable<Tuple4<BigInteger, BigInteger, BigInteger, PricingPolicy>>() {
+                    @Override
+                    public Tuple4<BigInteger, BigInteger, BigInteger, PricingPolicy> call() throws Exception {
+                        List<Type> results = executeCallMultipleValueReturn(function);
+                        return new Tuple4<BigInteger, BigInteger, BigInteger, PricingPolicy>(
+                                (BigInteger) results.get(0).getValue(), 
+                                (BigInteger) results.get(1).getValue(), 
+                                (BigInteger) results.get(2).getValue(), 
+                                (PricingPolicy) results.get(3));
+                    }
+                });
     }
 
     public RemoteFunctionCall<TransactionReceipt> initialize(String _datapoolAddressInRegistry) {
@@ -466,16 +541,16 @@ public class AbstractDatapool extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<Tuple9<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>>> showDatapool() {
+    public RemoteFunctionCall<Tuple12<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>>> showDatapool() {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_SHOWDATAPOOL, 
                 Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<DynamicArray<DatasetInfo>>() {}));
-        return new RemoteFunctionCall<Tuple9<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>>>(function,
-                new Callable<Tuple9<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>>>() {
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<DynamicArray<DatasetInfo>>() {}));
+        return new RemoteFunctionCall<Tuple12<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>>>(function,
+                new Callable<Tuple12<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>>>() {
                     @Override
-                    public Tuple9<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>> call() throws Exception {
+                    public Tuple12<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>> call() throws Exception {
                         List<Type> results = executeCallMultipleValueReturn(function);
-                        return new Tuple9<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>>(
+                        return new Tuple12<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, List<DatasetInfo>>(
                                 (String) results.get(0).getValue(), 
                                 (BigInteger) results.get(1).getValue(), 
                                 (BigInteger) results.get(2).getValue(), 
@@ -484,7 +559,10 @@ public class AbstractDatapool extends Contract {
                                 (BigInteger) results.get(5).getValue(), 
                                 (BigInteger) results.get(6).getValue(), 
                                 (BigInteger) results.get(7).getValue(), 
-                                convertToNative((List<DatasetInfo>) results.get(8).getValue()));
+                                (BigInteger) results.get(8).getValue(), 
+                                (BigInteger) results.get(9).getValue(), 
+                                (BigInteger) results.get(10).getValue(), 
+                                convertToNative((List<DatasetInfo>) results.get(11).getValue()));
                     }
                 });
     }
@@ -501,22 +579,6 @@ public class AbstractDatapool extends Contract {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
                 FUNC_SETDATASETPRICE, 
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_newDatasetPrice)), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteFunctionCall<TransactionReceipt> addAllowedApp(String _app) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_ADDALLOWEDAPP, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_app)), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteFunctionCall<TransactionReceipt> addAllowedWorkerpool(String _workerpool) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_ADDALLOWEDWORKERPOOL, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_workerpool)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -551,27 +613,23 @@ public class AbstractDatapool extends Contract {
         return executeRemoteCallSingleValueReturn(function, Boolean.class);
     }
 
-    public RemoteFunctionCall<List> getActiveDatasetsForTask(byte[] _taskid) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_GETACTIVEDATASETSFORTASK, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Bytes32(_taskid)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Address>>() {}));
-        return new RemoteFunctionCall<List>(function,
-                new Callable<List>() {
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public List call() throws Exception {
-                        List<Type> result = (List<Type>) executeCallSingleValueReturn(function, List.class);
-                        return convertToNative(result);
-                    }
-                });
+    public RemoteFunctionCall<TransactionReceipt> createSignedDatapoolOrder(String _app, String _workerpool, BigInteger _volume) {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
+                FUNC_CREATESIGNEDDATAPOOLORDER, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_app), 
+                new org.web3j.abi.datatypes.Address(_workerpool), 
+                new org.web3j.abi.datatypes.generated.Uint256(_volume)), 
+                Collections.<TypeReference<?>>emptyList());
+        return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> createTask(AppOrder _apporder, WorkerpoolOrder _workerpoolorder, RequestOrder _requestorder) {
+    public RemoteFunctionCall<TransactionReceipt> registerTasks(byte[] _dealid, BigInteger botFirst, BigInteger botSize, BigInteger _versionid) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_CREATETASK, 
-                Arrays.<Type>asList(_apporder, 
-                _workerpoolorder, 
-                _requestorder), 
+                FUNC_REGISTERTASKS, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Bytes32(_dealid), 
+                new org.web3j.abi.datatypes.generated.Uint256(botFirst), 
+                new org.web3j.abi.datatypes.generated.Uint256(botSize), 
+                new org.web3j.abi.datatypes.generated.Uint256(_versionid)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -584,27 +642,19 @@ public class AbstractDatapool extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<Boolean> isDatasetPresentAtTaskCreation(String _datasetAddress, byte[] _taskid) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_ISDATASETPRESENTATTASKCREATION, 
+    public RemoteFunctionCall<Boolean> isDatasetIncludedInTask(String _datasetAddress, byte[] _taskid) {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_ISDATASETINCLUDEDINTASK, 
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_datasetAddress), 
                 new org.web3j.abi.datatypes.generated.Bytes32(_taskid)), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
         return executeRemoteCallSingleValueReturn(function, Boolean.class);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> withdrawTaskReward(byte[] _taskid, String _datasetAddress) {
+    public RemoteFunctionCall<TransactionReceipt> withdrawVersionReward(BigInteger _versionid, String _datasetAddress) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_WITHDRAWTASKREWARD, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Bytes32(_taskid), 
+                FUNC_WITHDRAWVERSIONREWARD, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(_versionid), 
                 new org.web3j.abi.datatypes.Address(_datasetAddress)), 
-                Collections.<TypeReference<?>>emptyList());
-        return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteFunctionCall<TransactionReceipt> withdrawAllTasksRewards(String _datasetAddress) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_WITHDRAWALLTASKSREWARDS, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_datasetAddress)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -707,6 +757,84 @@ public class AbstractDatapool extends Contract {
         return _addresses.get(networkId);
     }
 
+    public static class DatasetOrder extends DynamicStruct {
+        public String dataset;
+
+        public BigInteger datasetprice;
+
+        public BigInteger volume;
+
+        public byte[] tag;
+
+        public String apprestrict;
+
+        public String workerpoolrestrict;
+
+        public String requesterrestrict;
+
+        public BigInteger deadline;
+
+        public byte[] salt;
+
+        public byte[] sign;
+
+        public DatasetOrder(String dataset, BigInteger datasetprice, BigInteger volume, byte[] tag, String apprestrict, String workerpoolrestrict, String requesterrestrict, BigInteger deadline, byte[] salt, byte[] sign) {
+            super(new org.web3j.abi.datatypes.Address(dataset), 
+                    new org.web3j.abi.datatypes.generated.Uint256(datasetprice), 
+                    new org.web3j.abi.datatypes.generated.Uint256(volume), 
+                    new org.web3j.abi.datatypes.generated.Bytes32(tag), 
+                    new org.web3j.abi.datatypes.Address(apprestrict), 
+                    new org.web3j.abi.datatypes.Address(workerpoolrestrict), 
+                    new org.web3j.abi.datatypes.Address(requesterrestrict), 
+                    new org.web3j.abi.datatypes.generated.Uint256(deadline), 
+                    new org.web3j.abi.datatypes.generated.Bytes32(salt), 
+                    new org.web3j.abi.datatypes.DynamicBytes(sign));
+            this.dataset = dataset;
+            this.datasetprice = datasetprice;
+            this.volume = volume;
+            this.tag = tag;
+            this.apprestrict = apprestrict;
+            this.workerpoolrestrict = workerpoolrestrict;
+            this.requesterrestrict = requesterrestrict;
+            this.deadline = deadline;
+            this.salt = salt;
+            this.sign = sign;
+        }
+
+        public DatasetOrder(Address dataset, Uint256 datasetprice, Uint256 volume, Bytes32 tag, Address apprestrict, Address workerpoolrestrict, Address requesterrestrict, Uint256 deadline, Bytes32 salt, DynamicBytes sign) {
+            super(dataset, datasetprice, volume, tag, apprestrict, workerpoolrestrict, requesterrestrict, deadline, salt, sign);
+            this.dataset = dataset.getValue();
+            this.datasetprice = datasetprice.getValue();
+            this.volume = volume.getValue();
+            this.tag = tag.getValue();
+            this.apprestrict = apprestrict.getValue();
+            this.workerpoolrestrict = workerpoolrestrict.getValue();
+            this.requesterrestrict = requesterrestrict.getValue();
+            this.deadline = deadline.getValue();
+            this.salt = salt.getValue();
+            this.sign = sign.getValue();
+        }
+    }
+
+    public static class PricingPolicy extends StaticStruct {
+        public BigInteger datapoolOwnerPrice;
+
+        public BigInteger datasetPrice;
+
+        public PricingPolicy(BigInteger datapoolOwnerPrice, BigInteger datasetPrice) {
+            super(new org.web3j.abi.datatypes.generated.Uint256(datapoolOwnerPrice), 
+                    new org.web3j.abi.datatypes.generated.Uint256(datasetPrice));
+            this.datapoolOwnerPrice = datapoolOwnerPrice;
+            this.datasetPrice = datasetPrice;
+        }
+
+        public PricingPolicy(Uint256 datapoolOwnerPrice, Uint256 datasetPrice) {
+            super(datapoolOwnerPrice, datasetPrice);
+            this.datapoolOwnerPrice = datapoolOwnerPrice.getValue();
+            this.datasetPrice = datasetPrice.getValue();
+        }
+    }
+
     public static class DatasetInfo extends StaticStruct {
         public String dataset;
 
@@ -726,213 +854,6 @@ public class AbstractDatapool extends Contract {
         }
     }
 
-    public static class AppOrder extends DynamicStruct {
-        public String app;
-
-        public BigInteger appprice;
-
-        public BigInteger volume;
-
-        public byte[] tag;
-
-        public String datasetrestrict;
-
-        public String workerpoolrestrict;
-
-        public String requesterrestrict;
-
-        public byte[] salt;
-
-        public byte[] sign;
-
-        public AppOrder(String app, BigInteger appprice, BigInteger volume, byte[] tag, String datasetrestrict, String workerpoolrestrict, String requesterrestrict, byte[] salt, byte[] sign) {
-            super(new org.web3j.abi.datatypes.Address(app), 
-                    new org.web3j.abi.datatypes.generated.Uint256(appprice), 
-                    new org.web3j.abi.datatypes.generated.Uint256(volume), 
-                    new org.web3j.abi.datatypes.generated.Bytes32(tag), 
-                    new org.web3j.abi.datatypes.Address(datasetrestrict), 
-                    new org.web3j.abi.datatypes.Address(workerpoolrestrict), 
-                    new org.web3j.abi.datatypes.Address(requesterrestrict), 
-                    new org.web3j.abi.datatypes.generated.Bytes32(salt), 
-                    new org.web3j.abi.datatypes.DynamicBytes(sign));
-            this.app = app;
-            this.appprice = appprice;
-            this.volume = volume;
-            this.tag = tag;
-            this.datasetrestrict = datasetrestrict;
-            this.workerpoolrestrict = workerpoolrestrict;
-            this.requesterrestrict = requesterrestrict;
-            this.salt = salt;
-            this.sign = sign;
-        }
-
-        public AppOrder(Address app, Uint256 appprice, Uint256 volume, Bytes32 tag, Address datasetrestrict, Address workerpoolrestrict, Address requesterrestrict, Bytes32 salt, DynamicBytes sign) {
-            super(app, appprice, volume, tag, datasetrestrict, workerpoolrestrict, requesterrestrict, salt, sign);
-            this.app = app.getValue();
-            this.appprice = appprice.getValue();
-            this.volume = volume.getValue();
-            this.tag = tag.getValue();
-            this.datasetrestrict = datasetrestrict.getValue();
-            this.workerpoolrestrict = workerpoolrestrict.getValue();
-            this.requesterrestrict = requesterrestrict.getValue();
-            this.salt = salt.getValue();
-            this.sign = sign.getValue();
-        }
-    }
-
-    public static class WorkerpoolOrder extends DynamicStruct {
-        public String workerpool;
-
-        public BigInteger workerpoolprice;
-
-        public BigInteger volume;
-
-        public byte[] tag;
-
-        public BigInteger category;
-
-        public BigInteger trust;
-
-        public String apprestrict;
-
-        public String datasetrestrict;
-
-        public String requesterrestrict;
-
-        public byte[] salt;
-
-        public byte[] sign;
-
-        public WorkerpoolOrder(String workerpool, BigInteger workerpoolprice, BigInteger volume, byte[] tag, BigInteger category, BigInteger trust, String apprestrict, String datasetrestrict, String requesterrestrict, byte[] salt, byte[] sign) {
-            super(new org.web3j.abi.datatypes.Address(workerpool), 
-                    new org.web3j.abi.datatypes.generated.Uint256(workerpoolprice), 
-                    new org.web3j.abi.datatypes.generated.Uint256(volume), 
-                    new org.web3j.abi.datatypes.generated.Bytes32(tag), 
-                    new org.web3j.abi.datatypes.generated.Uint256(category), 
-                    new org.web3j.abi.datatypes.generated.Uint256(trust), 
-                    new org.web3j.abi.datatypes.Address(apprestrict), 
-                    new org.web3j.abi.datatypes.Address(datasetrestrict), 
-                    new org.web3j.abi.datatypes.Address(requesterrestrict), 
-                    new org.web3j.abi.datatypes.generated.Bytes32(salt), 
-                    new org.web3j.abi.datatypes.DynamicBytes(sign));
-            this.workerpool = workerpool;
-            this.workerpoolprice = workerpoolprice;
-            this.volume = volume;
-            this.tag = tag;
-            this.category = category;
-            this.trust = trust;
-            this.apprestrict = apprestrict;
-            this.datasetrestrict = datasetrestrict;
-            this.requesterrestrict = requesterrestrict;
-            this.salt = salt;
-            this.sign = sign;
-        }
-
-        public WorkerpoolOrder(Address workerpool, Uint256 workerpoolprice, Uint256 volume, Bytes32 tag, Uint256 category, Uint256 trust, Address apprestrict, Address datasetrestrict, Address requesterrestrict, Bytes32 salt, DynamicBytes sign) {
-            super(workerpool, workerpoolprice, volume, tag, category, trust, apprestrict, datasetrestrict, requesterrestrict, salt, sign);
-            this.workerpool = workerpool.getValue();
-            this.workerpoolprice = workerpoolprice.getValue();
-            this.volume = volume.getValue();
-            this.tag = tag.getValue();
-            this.category = category.getValue();
-            this.trust = trust.getValue();
-            this.apprestrict = apprestrict.getValue();
-            this.datasetrestrict = datasetrestrict.getValue();
-            this.requesterrestrict = requesterrestrict.getValue();
-            this.salt = salt.getValue();
-            this.sign = sign.getValue();
-        }
-    }
-
-    public static class RequestOrder extends DynamicStruct {
-        public String app;
-
-        public BigInteger appmaxprice;
-
-        public String dataset;
-
-        public BigInteger datasetmaxprice;
-
-        public String workerpool;
-
-        public BigInteger workerpoolmaxprice;
-
-        public String requester;
-
-        public BigInteger volume;
-
-        public byte[] tag;
-
-        public BigInteger category;
-
-        public BigInteger trust;
-
-        public String beneficiary;
-
-        public String callback;
-
-        public String params;
-
-        public byte[] salt;
-
-        public byte[] sign;
-
-        public RequestOrder(String app, BigInteger appmaxprice, String dataset, BigInteger datasetmaxprice, String workerpool, BigInteger workerpoolmaxprice, String requester, BigInteger volume, byte[] tag, BigInteger category, BigInteger trust, String beneficiary, String callback, String params, byte[] salt, byte[] sign) {
-            super(new org.web3j.abi.datatypes.Address(app), 
-                    new org.web3j.abi.datatypes.generated.Uint256(appmaxprice), 
-                    new org.web3j.abi.datatypes.Address(dataset), 
-                    new org.web3j.abi.datatypes.generated.Uint256(datasetmaxprice), 
-                    new org.web3j.abi.datatypes.Address(workerpool), 
-                    new org.web3j.abi.datatypes.generated.Uint256(workerpoolmaxprice), 
-                    new org.web3j.abi.datatypes.Address(requester), 
-                    new org.web3j.abi.datatypes.generated.Uint256(volume), 
-                    new org.web3j.abi.datatypes.generated.Bytes32(tag), 
-                    new org.web3j.abi.datatypes.generated.Uint256(category), 
-                    new org.web3j.abi.datatypes.generated.Uint256(trust), 
-                    new org.web3j.abi.datatypes.Address(beneficiary), 
-                    new org.web3j.abi.datatypes.Address(callback), 
-                    new org.web3j.abi.datatypes.Utf8String(params), 
-                    new org.web3j.abi.datatypes.generated.Bytes32(salt), 
-                    new org.web3j.abi.datatypes.DynamicBytes(sign));
-            this.app = app;
-            this.appmaxprice = appmaxprice;
-            this.dataset = dataset;
-            this.datasetmaxprice = datasetmaxprice;
-            this.workerpool = workerpool;
-            this.workerpoolmaxprice = workerpoolmaxprice;
-            this.requester = requester;
-            this.volume = volume;
-            this.tag = tag;
-            this.category = category;
-            this.trust = trust;
-            this.beneficiary = beneficiary;
-            this.callback = callback;
-            this.params = params;
-            this.salt = salt;
-            this.sign = sign;
-        }
-
-        public RequestOrder(Address app, Uint256 appmaxprice, Address dataset, Uint256 datasetmaxprice, Address workerpool, Uint256 workerpoolmaxprice, Address requester, Uint256 volume, Bytes32 tag, Uint256 category, Uint256 trust, Address beneficiary, Address callback, Utf8String params, Bytes32 salt, DynamicBytes sign) {
-            super(app, appmaxprice, dataset, datasetmaxprice, workerpool, workerpoolmaxprice, requester, volume, tag, category, trust, beneficiary, callback, params, salt, sign);
-            this.app = app.getValue();
-            this.appmaxprice = appmaxprice.getValue();
-            this.dataset = dataset.getValue();
-            this.datasetmaxprice = datasetmaxprice.getValue();
-            this.workerpool = workerpool.getValue();
-            this.workerpoolmaxprice = workerpoolmaxprice.getValue();
-            this.requester = requester.getValue();
-            this.volume = volume.getValue();
-            this.tag = tag.getValue();
-            this.category = category.getValue();
-            this.trust = trust.getValue();
-            this.beneficiary = beneficiary.getValue();
-            this.callback = callback.getValue();
-            this.params = params.getValue();
-            this.salt = salt.getValue();
-            this.sign = sign.getValue();
-        }
-    }
-
     public static class AllowedAppAddedEventResponse extends BaseEventResponse {
         public String app;
     }
@@ -945,18 +866,22 @@ public class AbstractDatapool extends Contract {
         public String datapoolAddressInRegistry;
     }
 
+    public static class DatapoolOrderCreatedEventResponse extends BaseEventResponse {
+        public String datapoolAddressInRegistry;
+
+        public DatasetOrder datapoolorder;
+    }
+
     public static class DatapoolTaskCreatedEventResponse extends BaseEventResponse {
         public byte[] taskid;
 
         public String datapoolAddressInRegistry;
 
-        public BigInteger activeDatasetCount;
+        public BigInteger datasetCount;
     }
 
     public static class DatapoolTaskFinalizedEventResponse extends BaseEventResponse {
         public byte[] taskid;
-
-        public BigInteger activeDatasetCount;
     }
 
     public static class DatasetAddedEventResponse extends BaseEventResponse {
@@ -965,5 +890,11 @@ public class AbstractDatapool extends Contract {
 
     public static class DatasetRemovedEventResponse extends BaseEventResponse {
         public String dataset;
+    }
+
+    public static class PricingPolicyUpdatedEventResponse extends BaseEventResponse {
+        public BigInteger datapoolOwnerPrice;
+
+        public BigInteger datasetPrice;
     }
 }

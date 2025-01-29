@@ -34,6 +34,7 @@ COMMONS_POCO_WRAPPER_DIRECTORY=${HOME}/iexecdev/iexec-commons-poco/src/main/java
 Clean `IexecLibOrders_v5.OrderOperationEnum` references from `IexecLibOrders_v5.json` with your favorite editor(Only in abi node).
 
 You can now run the script
+
 ``` shell
 ./generateContractWrappers App AppRegistry Dataset DatasetRegistry Ownable Workerpool WorkerpoolRegistry IexecInterfaceTokenABILegacy IexecLibOrders_v5 AbstractDatapool
 ```

@@ -57,7 +57,6 @@ public class TaskDescription {
         TeeFramework teeFramework;
         int botSize;
         int botFirstIndex;
-        boolean datapool;
         List<String> datasetAddresses;
         List<String> datasetUris;
         List<String> datasetNames;
@@ -147,51 +146,13 @@ public class TaskDescription {
          * @param chainTask On-chain task from PoCo smart contracts
          * @return the created taskDescription
          */
-        public static TaskDescription toTaskDescription(ChainDeal chainDeal, ChainTask chainTask) {
+        public static TaskDescription toTaskDescription(ChainDeal chainDeal, ChainTask chainTask,
+                        List<String> datasetAddresses, List<String> datasetUris, List<String> datasetNames,
+                        List<String> datasetChecksums) {
                 if (chainDeal == null || chainTask == null) {
                         return null;
                 }
-                List<String> datasetAddresses = new ArrayList<String>();
-                List<String> datasetUris = new ArrayList<String>();
-                List<String> datasetNames = new ArrayList<String>();
-                List<String> datasetChecksums = new ArrayList<String>();
-                boolean datapool = false;
-                if (chainDeal.containsDataset()) {
-                        ChainDataset chainDataset = chainDeal.getChainDataset();
-                        AbstractDatapool datapoolContract = chainDataset.getDatapoolContract();
-                        if (datapoolContract != null) {
-                                datapool = true;
-                                List<ChainDataset> datasets = chainDataset.getDatasets();
-                                for (ChainDataset dataset : datasets) {
-                                        try {
-                                                Boolean isDatasetPresent = datapoolContract
-                                                                .isDatasetPresentAtTaskCreation(
-                                                                                dataset.getChainDatasetId(),
-                                                                                BytesUtils.stringToBytes(chainTask
-                                                                                                .getChainTaskId()))
-                                                                .send();
-                                                if (Boolean.TRUE.equals(isDatasetPresent)) {
-                                                        datasetAddresses.add(dataset.getChainDatasetId());
-                                                        datasetUris.add(MultiAddressHelper
-                                                                        .convertToURI(dataset.getUri()));
-                                                        datasetNames.add(dataset.getName());
-                                                        datasetChecksums.add(dataset.getChecksum());
-                                                }
-                                        } catch (Exception e) {
-                                                log.error("Failed to execute isDatasetPresentAtTaskCreation", e);
-                                        }
-                                }
-                                log.info("task contains datapool: [datapoolAddress:{}, content:{}]",
-                                                chainDataset.getChainDatasetId(), datasetAddresses);
-                        } else {
-                                datasetAddresses.add(chainDataset.getChainDatasetId());
-                                datasetUris.add(MultiAddressHelper.convertToURI(chainDataset.getUri()));
-                                datasetNames.add(chainDataset.getName());
-                                datasetChecksums.add(chainDataset.getChecksum());
-                                log.info("task contains dataset: [datasetAddress:{}, content:{}]",
-                                                chainDataset.getChainDatasetId(), datasetAddresses.get(0));
-                        }
-                }
+
                 final String tag = chainDeal.getTag();
                 return TaskDescription.builder()
                                 .chainTaskId(chainTask.getChainTaskId())
@@ -223,7 +184,6 @@ public class TaskDescription {
                                                 .getIexecResultStorageProxy())
                                 .secrets(chainDeal.getParams()
                                                 .getIexecSecrets())
-                                .datapool(datapool)
                                 .datasetAddresses(datasetAddresses)
                                 .datasetUris(datasetUris)
                                 .datasetNames(datasetNames)

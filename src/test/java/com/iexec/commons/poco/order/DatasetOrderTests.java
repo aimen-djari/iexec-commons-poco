@@ -39,12 +39,12 @@ class DatasetOrderTests {
         DatasetOrder datasetOrder = DatasetOrder.builder().build();
         String jsonString = mapper.writeValueAsString(datasetOrder);
         assertThat(jsonString).isEqualTo("{\"volume\":null,\"tag\":null,\"salt\":null,\"sign\":null," +
-                "\"dataset\":null,\"datasetprice\":null,\"apprestrict\":\"\",\"workerpoolrestrict\":\"\",\"requesterrestrict\":\"\"}");
+                "\"dataset\":null,\"datasetprice\":null,\"apprestrict\":\"\",\"workerpoolrestrict\":\"\",\"requesterrestrict\":\"\",\"deadline\":null}");
         DatasetOrder parsedDatasetOrder = mapper.readValue(jsonString, DatasetOrder.class);
         assertThat(parsedDatasetOrder).usingRecursiveComparison().isEqualTo(datasetOrder);
         Assertions.assertThat(datasetOrder).hasToString(
                 "DatasetOrder{dataset=null, datasetprice=null, volume=null, tag=null"
-                        + ", apprestrict=, workerpoolrestrict=, requesterrestrict=, salt=null, sign=null}"
+                        + ", apprestrict=, workerpoolrestrict=, requesterrestrict=, deadline=null, salt=null, sign=null}"
         );
     }
 
@@ -58,6 +58,7 @@ class DatasetOrderTests {
                 .apprestrict(BytesUtils.EMPTY_ADDRESS)
                 .workerpoolrestrict(BytesUtils.EMPTY_ADDRESS)
                 .requesterrestrict(BytesUtils.EMPTY_ADDRESS)
+                .deadline(BigInteger.ZERO)
                 .salt(Hash.sha3String(RandomStringUtils.randomAlphanumeric(20)))
                 .sign("0x0")
                 .build();
@@ -76,6 +77,7 @@ class DatasetOrderTests {
                         + ", apprestrict=0x0000000000000000000000000000000000000000"
                         + ", workerpoolrestrict=0x0000000000000000000000000000000000000000"
                         + ", requesterrestrict=0x0000000000000000000000000000000000000000"
+                        + ", deadline=0"
                         + ", salt=" + datasetOrder.getSalt() + ", sign=0x0}"
         );
     }

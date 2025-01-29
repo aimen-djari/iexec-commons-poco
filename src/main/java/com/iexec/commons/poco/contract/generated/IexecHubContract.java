@@ -1,19 +1,3 @@
-/*
- * Copyright 2020-2023 IEXEC BLOCKCHAIN TECH
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.iexec.commons.poco.contract.generated;
 
 import io.reactivex.Flowable;
@@ -2479,11 +2463,13 @@ public class IexecHubContract extends Contract {
 
         public String requesterrestrict;
 
+        public BigInteger deadline;
+
         public byte[] salt;
 
         public byte[] sign;
 
-        public DatasetOrder(String dataset, BigInteger datasetprice, BigInteger volume, byte[] tag, String apprestrict, String workerpoolrestrict, String requesterrestrict, byte[] salt, byte[] sign) {
+        public DatasetOrder(String dataset, BigInteger datasetprice, BigInteger volume, byte[] tag, String apprestrict, String workerpoolrestrict, String requesterrestrict, BigInteger deadline, byte[] salt, byte[] sign) {
             super(new org.web3j.abi.datatypes.Address(dataset), 
                     new org.web3j.abi.datatypes.generated.Uint256(datasetprice), 
                     new org.web3j.abi.datatypes.generated.Uint256(volume), 
@@ -2491,6 +2477,7 @@ public class IexecHubContract extends Contract {
                     new org.web3j.abi.datatypes.Address(apprestrict), 
                     new org.web3j.abi.datatypes.Address(workerpoolrestrict), 
                     new org.web3j.abi.datatypes.Address(requesterrestrict), 
+                    new org.web3j.abi.datatypes.generated.Uint256(deadline), 
                     new org.web3j.abi.datatypes.generated.Bytes32(salt), 
                     new org.web3j.abi.datatypes.DynamicBytes(sign));
             this.dataset = dataset;
@@ -2500,12 +2487,13 @@ public class IexecHubContract extends Contract {
             this.apprestrict = apprestrict;
             this.workerpoolrestrict = workerpoolrestrict;
             this.requesterrestrict = requesterrestrict;
+            this.deadline = deadline;
             this.salt = salt;
             this.sign = sign;
         }
 
-        public DatasetOrder(Address dataset, Uint256 datasetprice, Uint256 volume, Bytes32 tag, Address apprestrict, Address workerpoolrestrict, Address requesterrestrict, Bytes32 salt, DynamicBytes sign) {
-            super(dataset, datasetprice, volume, tag, apprestrict, workerpoolrestrict, requesterrestrict, salt, sign);
+        public DatasetOrder(Address dataset, Uint256 datasetprice, Uint256 volume, Bytes32 tag, Address apprestrict, Address workerpoolrestrict, Address requesterrestrict, Uint256 deadline, Bytes32 salt, DynamicBytes sign) {
+            super(dataset, datasetprice, volume, tag, apprestrict, workerpoolrestrict, requesterrestrict, deadline, salt, sign);
             this.dataset = dataset.getValue();
             this.datasetprice = datasetprice.getValue();
             this.volume = volume.getValue();
@@ -2513,6 +2501,7 @@ public class IexecHubContract extends Contract {
             this.apprestrict = apprestrict.getValue();
             this.workerpoolrestrict = workerpoolrestrict.getValue();
             this.requesterrestrict = requesterrestrict.getValue();
+            this.deadline = deadline.getValue();
             this.salt = salt.getValue();
             this.sign = sign.getValue();
         }

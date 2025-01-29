@@ -21,6 +21,7 @@ import com.iexec.commons.poco.contract.generated.*;
 import com.iexec.commons.poco.contract.generated.AbstractDatapool.DatasetInfo;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.commons.poco.utils.BytesUtils;
+import com.iexec.commons.poco.utils.MultiAddressHelper;
 import com.iexec.commons.poco.utils.Retryer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -41,7 +42,12 @@ import org.web3j.tx.gas.DefaultGasProvider;
 
 import javax.annotation.PostConstruct;
 import java.math.BigInteger;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,10 +58,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import static com.iexec.commons.poco.tee.TeeEnclaveConfiguration.buildEnclaveConfigurationFromJsonString;
 import static com.iexec.commons.poco.utils.BytesUtils.isNonZeroedBytes32;
 import static org.web3j.tx.TransactionManager.DEFAULT_POLLING_ATTEMPTS_PER_TX_HASH;
-
 
 /*
  * Contracts (located at *.contract.generated) which are used in this service are generated from:
@@ -656,7 +664,7 @@ public abstract class IexecHubAbstractService {
         Callable<Optional<ChainDataset>> isDeployedDataset = () -> {
             log.info("Waiting for contract deployment" + paramsPrinter,
                     owner, name, multiAddress, checksum);
-            return getChainDataset(getDatasetContract(datasetAddress));
+            return getChainDataset(getDatasetContract(datasetAddress), null);
         };
 
         try {
@@ -777,7 +785,7 @@ public abstract class IexecHubAbstractService {
                 return Optional.empty();
             }
             ChainCategory category = chainCategory.get();
-            Optional<ChainDataset> chainDataset = getChainDataset(getDatasetContract(datasetAddress));
+            Optional<ChainDataset> chainDataset = getChainDataset(getDatasetContract(datasetAddress), chainDealId);
             ChainDataset dataset = chainDataset.orElse(null);
 
             ChainDeal chainDeal = ChainDeal.parts2ChainDeal(chainDealId, deal, app, category, dataset);
@@ -945,38 +953,27 @@ public abstract class IexecHubAbstractService {
         return Optional.of(chainAppBuilder.build());
     }
 
-    public Optional<ChainDataset> getChainDataset(Dataset dataset) {
+    public Optional<ChainDataset> getChainDataset(Dataset dataset, String chainDealId) {
         if (dataset != null && !dataset.getContractAddress().equals(BytesUtils.EMPTY_ADDRESS)) {
+            List<ChainDataset> subDatasets = new ArrayList<ChainDataset>();
+
             try {
-                String datasetTag = dataset.m_datasetTag().send();
+                byte[] datasetChecksum = dataset.m_datasetChecksum().send();
+                byte[] datapoolChecksum = BytesUtils
+                        .stringToBytes("0x36b5d1729e99a9beaeec4bd1eac62b8ed6306bfa7b7c06cf91f64a65a0ca5b87");
                 DatasetRegistry datasetRegistry = getDatasetRegistryContract(
                         web3jAbstractService.getContractGasProvider());
-                if (datasetTag.equals(datasetRegistry.DATAPOOL_TAG().send())) {
+                if (Arrays.equals(datasetChecksum, datapoolChecksum)) {
                     String datapoolAddress = new String(dataset.m_datasetMultiaddr().send(), StandardCharsets.UTF_8);
                     AbstractDatapool datapoolContract = getDatapoolContract(
                             datapoolAddress,
                             web3jAbstractService.getContractGasProvider());
-                    List<String> datasetAddresses = fetchAllDatasets(datapoolContract);
-                    List<ChainDataset> chainDatasets = new ArrayList<ChainDataset>();
-                    for (String datasetAddress : datasetAddresses) {
-                        Dataset newDataset = getDatasetContract(datasetAddress);
-                        chainDatasets.add(ChainDataset.builder()
-                                .chainDatasetId(newDataset.getContractAddress())
-                                .owner(newDataset.owner().send())
-                                .name(newDataset.m_datasetName().send())
-                                .datapoolContract(null)
-                                .datasets(null)
-                                .uri(BytesUtils.bytesToString(newDataset.m_datasetMultiaddr().send()))
-                                .checksum(BytesUtils.bytesToString(newDataset.m_datasetChecksum().send()))
-                                .build());
-                    }
 
                     return Optional.of(ChainDataset.builder()
                             .chainDatasetId(dataset.getContractAddress())
                             .owner(dataset.owner().send())
                             .name(dataset.m_datasetName().send())
-                            .datapoolContract(datapoolContract)
-                            .datasets(chainDatasets)
+                            .datapool(datapoolContract)
                             .uri(BytesUtils.bytesToString(dataset.m_datasetMultiaddr().send()))
                             .checksum(BytesUtils.bytesToString(dataset.m_datasetChecksum().send()))
                             .build());
@@ -986,8 +983,7 @@ public abstract class IexecHubAbstractService {
                         .chainDatasetId(dataset.getContractAddress())
                         .owner(dataset.owner().send())
                         .name(dataset.m_datasetName().send())
-                        .datapoolContract(null)
-                        .datasets(null)
+                        .datapool(null)
                         .uri(BytesUtils.bytesToString(dataset.m_datasetMultiaddr().send()))
                         .checksum(BytesUtils.bytesToString(dataset.m_datasetChecksum().send()))
                         .build());
@@ -1094,6 +1090,14 @@ public abstract class IexecHubAbstractService {
         return taskDescriptions.get(chainTaskId);
     }
 
+    public TaskDescription getTaskDescriptionCustom(String chainTaskId, long retryDelay, int maxRetries) {
+        if (!taskDescriptions.containsKey(chainTaskId)) {
+            repeatGetTaskDescriptionFromChain(chainTaskId, retryDelay, maxRetries)
+                    .ifPresent(taskDescription -> taskDescriptions.putIfAbsent(chainTaskId, taskDescription));
+        }
+        return taskDescriptions.get(chainTaskId);
+    }
+
     public Optional<TaskDescription> getTaskDescriptionFromChain(String chainTaskId) {
         return repeatGetTaskDescriptionFromChain(chainTaskId, retryDelay, 0);
     }
@@ -1120,20 +1124,66 @@ public abstract class IexecHubAbstractService {
         }
         ChainDeal chainDeal = optionalChainDeal.get();
 
-        TaskDescription taskDescription = TaskDescription.toTaskDescription(chainDeal, chainTask);
+        List<String> datasetAddresses = new ArrayList<String>();
+        List<String> datasetUris = new ArrayList<String>();
+        List<String> datasetNames = new ArrayList<String>();
+        List<String> datasetChecksums = new ArrayList<String>();
+
+        if (chainDeal.containsDataset()) {
+            ChainDataset chainDataset = chainDeal.getChainDataset();
+            AbstractDatapool datapoolContract = chainDataset.getDatapool();
+            if (datapoolContract != null) {
+                List<String> datasets = fetchSubDatasets(chainDeal.getChainDataset().getDatapool());
+                for (String datasetAddress : datasets) {
+                    try {
+                        Dataset subDataset = getDatasetContract(datasetAddress);
+                        /*
+                        
+                        Boolean isDatasetPresent = datapoolContract
+                                .isDatasetIncludedInTask(
+                                        subDataset.getContractAddress(),
+                                        BytesUtils.stringToBytes(chainTaskId))
+                                .send();
+                                 */
+                        //if (Boolean.TRUE.equals(isDatasetPresent)) {
+                            datasetAddresses.add(subDataset.getContractAddress());
+                            datasetUris.add(MultiAddressHelper
+                                    .convertToURI(BytesUtils.bytesToString(subDataset.m_datasetMultiaddr().send())));
+                            datasetNames.add(subDataset.m_datasetName().send());
+                            datasetChecksums.add(BytesUtils.bytesToString(subDataset.m_datasetChecksum().send()));
+                        //}
+                    } catch (Exception e) {
+                        log.error("Failed to execute isDatasetIncludedInTask()", e);
+                    }
+                }
+                log.info("task contains datapool: [datapoolAddress:{}]",
+                        chainDataset.getChainDatasetId());
+            } else {
+                datasetAddresses.add(chainDataset.getChainDatasetId());
+                datasetUris.add(MultiAddressHelper.convertToURI(chainDataset.getUri()));
+                datasetNames.add(chainDataset.getName());
+                datasetChecksums.add(chainDataset.getChecksum());
+
+                log.info("task contains dataset: [datasetAddress:{}]",
+                        chainDataset.getChainDatasetId());
+            }
+        }
+
+        TaskDescription taskDescription = TaskDescription.toTaskDescription(chainDeal, chainTask, datasetAddresses,
+                datasetUris, datasetNames, datasetChecksums);
         return taskDescription != null ? Optional.of(taskDescription) : Optional.empty();
     }
 
     public boolean isTeeTask(String chainTaskId) {
-        Optional<TaskDescription> oTaskDescription = getTaskDescriptionFromChain(chainTaskId);
+        TaskDescription taskDescription = getTaskDescription(chainTaskId);
 
-        if (oTaskDescription.isEmpty()) {
+        if (taskDescription == null) {
             log.error("Couldn't get task description from chain [chainTaskId:{}]",
                     chainTaskId);
             return false;
         }
 
-        return oTaskDescription.get().isTeeTask();
+        return taskDescription.isTeeTask();
     }
 
     // region Purge
@@ -1162,17 +1212,47 @@ public abstract class IexecHubAbstractService {
         taskDescriptions.clear();
     }
 
-    public List<String> fetchAllDatasets(AbstractDatapool datapoolContract) {
+    public List<String> fetchSubDatasets(AbstractDatapool datapoolContract) {
         List<String> datasets = new ArrayList<String>();
         try {
+            // Initialisation du client HTTP
+            HttpClient client = HttpClient.newHttpClient();
+            
+            // Création de la requête HTTP GET
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://20.185.225.192:4002/getDatasets"))
+                    .GET()
+                    .build();
+            
+            // Envoi de la requête et récupération de la réponse
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // Vérification du statut HTTP
+            if (response.statusCode() == 200) {
+                // Parsing du JSON avec Jackson
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode rootNode = objectMapper.readTree(response.body());
+
+                // Extraire la liste des datasets
+                datasets = objectMapper.convertValue(rootNode.get("datasets"), List.class);
+            } else {
+                log.error("Error getting datasets: " + response.statusCode());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        /*
+        try {
             datasets = datapoolContract.showDatapool().send()
-                    .component9()
+                    .component12()
                     .stream()
                     .map(datasetInfo -> datasetInfo.dataset)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Error fetching all datasets", e);
         }
+        */
         return datasets;
     }
 
