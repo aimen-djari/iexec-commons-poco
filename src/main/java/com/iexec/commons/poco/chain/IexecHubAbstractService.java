@@ -1137,21 +1137,20 @@ public abstract class IexecHubAbstractService {
                 for (String datasetAddress : datasets) {
                     try {
                         Dataset subDataset = getDatasetContract(datasetAddress);
-                        /*
                         
                         Boolean isDatasetPresent = datapoolContract
                                 .isDatasetIncludedInTask(
                                         subDataset.getContractAddress(),
                                         BytesUtils.stringToBytes(chainTaskId))
                                 .send();
-                                 */
-                        //if (Boolean.TRUE.equals(isDatasetPresent)) {
+                                 
+                        if (Boolean.TRUE.equals(isDatasetPresent)) {
                             datasetAddresses.add(subDataset.getContractAddress());
                             datasetUris.add(MultiAddressHelper
                                     .convertToURI(BytesUtils.bytesToString(subDataset.m_datasetMultiaddr().send())));
                             datasetNames.add(subDataset.m_datasetName().send());
                             datasetChecksums.add(BytesUtils.bytesToString(subDataset.m_datasetChecksum().send()));
-                        //}
+                        }
                     } catch (Exception e) {
                         log.error("Failed to execute isDatasetIncludedInTask()", e);
                     }
@@ -1214,35 +1213,7 @@ public abstract class IexecHubAbstractService {
 
     public List<String> fetchSubDatasets(AbstractDatapool datapoolContract) {
         List<String> datasets = new ArrayList<String>();
-        try {
-            // Initialisation du client HTTP
-            HttpClient client = HttpClient.newHttpClient();
-            
-            // Création de la requête HTTP GET
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://20.185.225.192:4002/getDatasets"))
-                    .GET()
-                    .build();
-            
-            // Envoi de la requête et récupération de la réponse
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            // Vérification du statut HTTP
-            if (response.statusCode() == 200) {
-                // Parsing du JSON avec Jackson
-                ObjectMapper objectMapper = new ObjectMapper();
-                JsonNode rootNode = objectMapper.readTree(response.body());
-
-                // Extraire la liste des datasets
-                datasets = objectMapper.convertValue(rootNode.get("datasets"), List.class);
-            } else {
-                log.error("Error getting datasets: " + response.statusCode());
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        /*
+        
         try {
             datasets = datapoolContract.showDatapool().send()
                     .component12()
@@ -1252,7 +1223,7 @@ public abstract class IexecHubAbstractService {
         } catch (Exception e) {
             log.error("Error fetching all datasets", e);
         }
-        */
+        
         return datasets;
     }
 
